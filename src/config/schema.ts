@@ -11,10 +11,15 @@ export const AgentOverrideConfigSchema = z.object({
 
 export type AgentOverrideConfig = z.infer<typeof AgentOverrideConfigSchema>;
 
+// MCP names
+export const McpNameSchema = z.enum(["websearch", "context7", "grep_app"]);
+export type McpName = z.infer<typeof McpNameSchema>;
+
 // Main plugin config
 export const PluginConfigSchema = z.object({
   agents: z.record(z.string(), AgentOverrideConfigSchema).optional(),
   disabled_agents: z.array(z.string()).optional(),
+  disabled_mcps: z.array(z.string()).optional(),
 });
 
 export type PluginConfig = z.infer<typeof PluginConfigSchema>;

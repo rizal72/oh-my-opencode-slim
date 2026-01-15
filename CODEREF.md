@@ -10,6 +10,7 @@ src/
 ├── cli/              # Installer CLI
 ├── config/           # Configuration loading & constants
 ├── features/         # Background task manager
+├── mcp/              # MCP server configurations
 ├── tools/            # Tool definitions (background_task, etc.)
 ├── utils/            # Shared utilities
 └── index.ts          # Plugin entry point
@@ -27,6 +28,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
     name: "oh-my-opencode-lite",
     agent: agents,      // Agent configurations
     tool: tools,        // Custom tools
+    mcp: mcps,          // MCP server configs
     config: (cfg) => {} // Modify OpenCode config
   };
 };
@@ -70,7 +72,64 @@ export function createExampleAgent(model: string): AgentDefinition {
 3. Add to `AgentName` type in `src/config/schema.ts`
 4. Add default model in `src/config/schema.ts` → `DEFAULT_MODELS`
 
-### 3. Configuration
+### 3. MCP Servers
+
+**Location:** `src/mcp/`
+
+Built-in MCP servers enabled by default:
+
+| MCP | Purpose | URL |
+|-----|---------|-----|
+| `websearch` | Real-time web search via Exa AI | `https://mcp.exa.ai/mcp` |
+| `context7` | Official library documentation | `https://mcp.context7.com/mcp` |
+| `grep_app` | GitHub code search via grep.app | `https://mcp.grep.app` |
+
+**Files:**
+- `src/mcp/types.ts` - MCP type definitions
+- `src/mcp/websearch.ts` - Exa web search config
+- `src/mcp/context7.ts` - Context7 docs config
+- `src/mcp/grep-app.ts` - grep.app code search config
+- `src/mcp/index.ts` - Factory function
+
+**To add a new MCP:**
+
+```typescript
+// src/mcp/my-mcp.ts
+import type { RemoteMcpConfig } from "./types";
+
+export const my_mcp: RemoteMcpConfig = {
+  type: "remote",
+  url: "https://my-mcp-server.com/mcp",
+  enabled: true,
+  headers: process.env.MY_API_KEY
+    ? { "x-api-key": process.env.MY_API_KEY }
+    : undefined,
+};
+```
+
+```typescript
+// src/mcp/index.ts - add to allBuiltinMcps
+import { my_mcp } from "./my-mcp";
+
+const allBuiltinMcps: Record<McpName, RemoteMcpConfig> = {
+  // ...existing
+  my_mcp,
+};
+
+// src/mcp/types.ts - add to McpNameSchema
+export const McpNameSchema = z.enum(["websearch", "context7", "grep_app", "my_mcp"]);
+```
+
+**Disabling MCPs:**
+
+Users can disable MCPs in their config:
+```json
+{
+  "disabled_mcps": ["websearch"]
+}
+```
+
+### 4. Configuration
 
 **Files:**
 - `src/config/schema.ts` - Zod schemas & types
@@ -93,6 +152,7 @@ type AgentOverrideConfig = {
 type PluginConfig = {
   agents?: Record<string, AgentOverrideConfig>;
   disabled_agents?: string[];
+  disabled_mcps?: string[];
 };
 ```
 
@@ -100,7 +160,7 @@ type PluginConfig = {
 - User: `~/.config/opencode/oh-my-opencode-lite.json`
 - Project: `.opencode/oh-my-opencode-lite.json`
 
-### 4. Tools
+### 5. Tools
 
 **Location:** `src/tools/`
 
@@ -124,7 +184,7 @@ const my_tool = tool({
 });
 ```
 
-### 5. Background Tasks
+### 6. Background Tasks
 
 **Files:**
 - `src/features/background-manager.ts` - Task lifecycle management
@@ -277,6 +337,10 @@ import { MY_NEW_TIMEOUT_MS } from "../config";
 | `src/index.ts` | Plugin entry, exports |
 | `src/agents/index.ts` | Agent factory, override logic |
 | `src/agents/orchestrator.ts` | Main orchestrator agent |
+| `src/mcp/index.ts` | MCP factory, builtin MCPs |
+| `src/mcp/websearch.ts` | Exa AI web search |
+| `src/mcp/context7.ts` | Context7 docs lookup |
+| `src/mcp/grep-app.ts` | GitHub code search |
 | `src/config/schema.ts` | Types, Zod schemas, defaults |
 | `src/config/constants.ts` | Timeouts, intervals |
 | `src/config/loader.ts` | Config file loading |
@@ -296,7 +360,8 @@ import type { AgentConfig as SDKAgentConfig } from "@opencode-ai/sdk";
 
 // Local types
 import type { AgentDefinition } from "./agents";
-import type { PluginConfig, AgentOverrideConfig, AgentName } from "./config";
+import type { PluginConfig, AgentOverrideConfig, AgentName, McpName } from "./config";
+import type { RemoteMcpConfig } from "./mcp";
 ```
 
 ## Build & Test
