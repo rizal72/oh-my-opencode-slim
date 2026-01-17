@@ -3,5 +3,6 @@
 export type RemoteMcpConfig = {
   type: "remote";
   url: string;
+  enabled?: boolean;
   headers?: Record<string, string>;
 };
