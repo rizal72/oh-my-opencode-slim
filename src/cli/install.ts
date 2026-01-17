@@ -8,6 +8,8 @@ import {
   addAuthPlugins,
   addProviderConfig,
   detectCurrentConfig,
+  isTmuxInstalled,
+  generateLiteConfig,
 } from "./config-manager"
 
 // Line reader for TUI mode that handles both TTY and piped input
@@ -140,11 +142,30 @@ function formatConfigSummary(config: InstallConfig): string {
   lines.push(`  ${config.hasAntigravity ? SYMBOLS.check : DIM + "○" + RESET} Antigravity`)
   lines.push(`  ${config.hasOpenAI ? SYMBOLS.check : DIM + "○" + RESET} OpenAI`)
   lines.push(`  ${config.hasCerebras ? SYMBOLS.check : DIM + "○" + RESET} Cerebras`)
+  lines.push(`  ${config.hasTmux ? SYMBOLS.check : DIM + "○" + RESET} Tmux Integration`)
   return lines.join("\n")
 }
 
+function printAgentModels(config: InstallConfig): void {
+  const liteConfig = generateLiteConfig(config)
+  const agents = liteConfig.agents as Record<string, { model: string }>
+  
+  if (!agents || Object.keys(agents).length === 0) return
+
+  console.log(`${BOLD}Agent Model Configuration:${RESET}`)
+  console.log()
+  
+  const maxAgentLen = Math.max(...Object.keys(agents).map(a => a.length))
+  
+  for (const [agent, info] of Object.entries(agents)) {
+    const padding = " ".repeat(maxAgentLen - agent.length)
+    console.log(`  ${DIM}${agent}${RESET}${padding} ${SYMBOLS.arrow} ${BLUE}${info.model}${RESET}`)
+  }
+  console.log()
+}
+
 function validateNonTuiArgs(args: InstallArgs): { valid: boolean; errors: string[] } {
-  const requiredArgs = ["antigravity", "openai", "cerebras"] as const
+  const requiredArgs = ["antigravity", "openai", "cerebras", "tmux"] as const
   const errors = requiredArgs.flatMap((key) => {
     const value = args[key]
     if (value === undefined) return [`--${key} is required (values: yes, no)`]
@@ -159,6 +180,7 @@ function argsToConfig(args: InstallArgs): InstallConfig {
     hasAntigravity: args.antigravity === "yes",
     hasOpenAI: args.openai === "yes",
     hasCerebras: args.cerebras === "yes",
+    hasTmux: args.tmux === "yes",
   }
 }
 
@@ -166,11 +188,13 @@ function detectedToInitialValues(detected: DetectedConfig): {
   antigravity: BooleanArg
   openai: BooleanArg
   cerebras: BooleanArg
+  tmux: BooleanArg
 } {
   return {
-    antigravity: detected.hasAntigravity ? "yes" : "no",
+    antigravity: detected.hasAntigravity ? "yes" : "yes", // Default to yes for antigravity as requested
     openai: detected.hasOpenAI ? "yes" : "no",
     cerebras: detected.hasCerebras ? "yes" : "no",
+    tmux: detected.hasTmux ? "yes" : "no",
   }
 }
 
@@ -189,21 +213,33 @@ async function askYesNo(promptText: string, defaultValue: BooleanArg = "no"): Pr
 
 async function runTuiMode(detected: DetectedConfig): Promise<InstallConfig | null> {
   const initial = detectedToInitialValues(detected)
+  const tmuxInstalled = await isTmuxInstalled()
 
-  console.log(`${BOLD}Question 1/3:${RESET}`)
+  console.log(`${BOLD}Question 1/${tmuxInstalled ? "4" : "3"}:${RESET}`)
+  printInfo(`${BOLD}${YELLOW}Antigravity subscription is highly recommended for the best experience.${RESET}`)
+  printInfo(`The Pantheon is tuned for Antigravity's model routing. Other models work, but results may vary.`)
   const antigravity = await askYesNo(
     "Do you have an Antigravity subscription?",
     initial.antigravity
   )
   console.log()
 
-  console.log(`${BOLD}Question 2/3:${RESET}`)
+  console.log(`${BOLD}Question 2/${tmuxInstalled ? "4" : "3"}:${RESET}`)
   const openai = await askYesNo("Do you have access to OpenAI API?", initial.openai)
   console.log()
 
-  console.log(`${BOLD}Question 3/3:${RESET}`)
+  console.log(`${BOLD}Question 3/${tmuxInstalled ? "4" : "3"}:${RESET}`)
   const cerebras = await askYesNo("Do you have access to Cerebras API?", initial.cerebras)
   console.log()
+
+  let tmux: BooleanArg = "no"
+  if (tmuxInstalled) {
+    console.log(`${BOLD}Question 4/4:${RESET}`)
+    printInfo(`${BOLD}Tmux detected!${RESET} We can enable tmux integration for you.`)
+    printInfo(`This will spawn new panes for sub-agents, letting you watch them work in real-time.`)
+    tmux = await askYesNo("Enable tmux integration?", initial.tmux)
+    console.log()
+  }
 
   closeLineReader()
 
@@ -211,6 +247,7 @@ async function runTuiMode(detected: DetectedConfig): Promise<InstallConfig | nul
     hasAntigravity: antigravity === "yes",
     hasOpenAI: openai === "yes",
     hasCerebras: cerebras === "yes",
+    hasTmux: tmux === "yes",
   }
 }
 
@@ -253,6 +290,8 @@ async function runInstall(config: InstallConfig): Promise<number> {
   console.log()
   console.log(formatConfigSummary(config))
   console.log()
+  
+  printAgentModels(config)
 
   if (!config.hasAntigravity && !config.hasOpenAI && !config.hasCerebras) {
     printWarning("No providers configured. At least one provider is required.")
@@ -263,12 +302,26 @@ async function runInstall(config: InstallConfig): Promise<number> {
   console.log()
   console.log(`${BOLD}Next steps:${RESET}`)
   console.log()
-  console.log(`  1. Authenticate with your providers:`)
+  
+  let nextStep = 1
+  console.log(`  ${nextStep++}. Authenticate with your providers:`)
   console.log(`     ${BLUE}$ opencode auth login${RESET}`)
   console.log()
-  console.log(`  2. Start OpenCode:`)
-  console.log(`     ${BLUE}$ opencode${RESET}`)
-  console.log()
+
+  if (config.hasTmux) {
+    console.log(`  ${nextStep++}. Enable OpenCode HTTP server for tmux integration:`)
+    console.log(`     Add the following to ${DIM}${liteResult.configPath.replace("oh-my-opencode-slim.json", "opencode.json")}${RESET}:`)
+    console.log(`     ${BLUE}{ "server": { "port": 4096 } }${RESET}`)
+    console.log()
+    console.log(`  ${nextStep++}. Run OpenCode inside tmux:`)
+    console.log(`     ${BLUE}$ tmux${RESET}`)
+    console.log(`     ${BLUE}$ opencode${RESET}`)
+    console.log()
+  } else {
+    console.log(`  ${nextStep++}. Start OpenCode:`)
+    console.log(`     ${BLUE}$ opencode${RESET}`)
+    console.log()
+  }
 
   return 0
 }
@@ -285,7 +338,7 @@ export async function install(args: InstallArgs): Promise<number> {
       }
       console.log()
       printInfo(
-        "Usage: bunx oh-my-opencode-slim install --no-tui --antigravity=<yes|no> --openai=<yes|no> --cerebras=<yes|no>"
+        "Usage: bunx oh-my-opencode-slim install --no-tui --antigravity=<yes|no> --openai=<yes|no> --cerebras=<yes|no> --tmux=<yes|no>"
       )
       console.log()
       return 1
