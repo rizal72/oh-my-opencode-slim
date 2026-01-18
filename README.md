@@ -430,14 +430,8 @@ Override skills per-agent in your [Plugin Config](#plugin-config-oh-my-opencode-
 ```json
 {
   "agents": {
-    "orchestrator": {
-      "skills": ["*"]
-    },
     "designer": {
       "skills": ["playwright", "yagni-enforcement"]
-    },
-    "oracle": {
-      "skills": ["yagni-enforcement"]
     }
   }
 }
