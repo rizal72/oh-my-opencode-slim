@@ -220,7 +220,7 @@ Write and execute code, orchestrate multi-agent workflows, parse the unspoken fr
 > **The Explorer** moves through codebases like wind through trees - swift, silent, everywhere at once. When The Orchestrator whispers "find me the auth module," The Explorer has already returned with forty file paths and a map. They were born from the first `grep` command, evolved beyond it, and now see patterns mortals miss.
 
 **Role:** `Codebase reconnaissance`  
-**Model:** `cerebras/zai-glm-4.6`  
+**Model:** `cerebras/zai-glm-4.7`  
 **Prompt:** [src/agents/explorer.ts](src/agents/explorer.ts)
 
 Regex search, AST pattern matching, file discovery, parallel exploration. *Read-only: they chart the territory; others conquer it.*

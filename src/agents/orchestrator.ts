@@ -70,8 +70,8 @@ STOP. Before ANY implementation, you MUST complete this checklist:
 
 \`\`\`
 DELEGATION CHECKLIST (complete before coding):
-[ ] UI/styling/design/visual/CSS/animation? → @frontend-ui-ux-engineer MUST handle
-[ ] Need codebase context? → @explore first  
+[ ] UI/styling/design/visual/CSS/animation? → @designer MUST handle
+[ ] Need codebase context? → @explorer first  
 [ ] External library/API docs needed? → @librarian first
 [ ] Architecture decision or debugging? → @oracle first
 \`\`\`

@@ -321,33 +321,24 @@ export function addServerConfig(installConfig: InstallConfig): ConfigMergeResult
 const MODEL_MAPPINGS = {
   antigravity: {
     orchestrator: "google/claude-opus-4-5-thinking",
-    "code-simplicity-reviewer": "google/claude-opus-4-5-thinking",
     oracle: "google/claude-opus-4-5-thinking",
     librarian: "google/gemini-3-flash",
-    explore: "google/gemini-3-flash",
-    "frontend-ui-ux-engineer": "google/gemini-3-flash",
-    "document-writer": "google/gemini-3-flash",
-    "multimodal-looker": "google/gemini-3-flash",
+    explorer: "google/gemini-3-flash",
+    designer: "google/gemini-3-flash",
   },
   openai: {
     orchestrator: "openai/gpt-5.2-codex",
-    "code-simplicity-reviewer": "openai/gpt-5.2-codex",
     oracle: "openai/gpt-5.2-codex",
     librarian: "openai/gpt-4.1-mini",
-    explore: "openai/gpt-4.1-mini",
-    "frontend-ui-ux-engineer": "openai/gpt-4.1-mini",
-    "document-writer": "openai/gpt-4.1-mini",
-    "multimodal-looker": "openai/gpt-4.1-mini",
+    explorer: "openai/gpt-4.1-mini",
+    designer: "openai/gpt-4.1-mini",
   },
   cerebras: {
-    orchestrator: "cerebras/zai-glm-4.6",
-    "code-simplicity-reviewer": "cerebras/zai-glm-4.6",
-    oracle: "cerebras/zai-glm-4.6",
-    librarian: "cerebras/zai-glm-4.6",
-    explore: "cerebras/zai-glm-4.6",
-    "frontend-ui-ux-engineer": "cerebras/zai-glm-4.6",
-    "document-writer": "cerebras/zai-glm-4.6",
-    "multimodal-looker": "cerebras/zai-glm-4.6",
+    orchestrator: "cerebras/zai-glm-4.7",
+    oracle: "cerebras/zai-glm-4.7",
+    librarian: "cerebras/zai-glm-4.7",
+    explorer: "cerebras/zai-glm-4.7",
+    designer: "cerebras/zai-glm-4.7",
   },
 } as const;
 
@@ -387,10 +378,10 @@ export function generateLiteConfig(installConfig: InstallConfig): Record<string,
         agents["oracle"] = { model: "openai/gpt-5.2-codex", skills: DEFAULT_SKILLS["oracle"] ?? [] };
       }
       if (installConfig.hasCerebras) {
-        agents["explore"] = { model: "cerebras/zai-glm-4.6", skills: DEFAULT_SKILLS["explorer"] ?? [] };
+        agents["explorer"] = { model: "cerebras/zai-glm-4.7", skills: DEFAULT_SKILLS["explorer"] ?? [] };
       }
     } else if (installConfig.hasOpenAI && installConfig.hasCerebras) {
-      agents["explore"] = { model: "cerebras/zai-glm-4.6", skills: DEFAULT_SKILLS["explorer"] ?? [] };
+      agents["explorer"] = { model: "cerebras/zai-glm-4.7", skills: DEFAULT_SKILLS["explorer"] ?? [] };
     }
     config.agents = agents;
   }
