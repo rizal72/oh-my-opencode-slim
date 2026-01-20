@@ -31,7 +31,7 @@ export class TmuxSessionManager {
   constructor(ctx: PluginInput, tmuxConfig: TmuxConfig) {
     this.client = ctx.client;
     this.tmuxConfig = tmuxConfig;
-    this.serverUrl = ctx.serverUrl?.toString() ?? "http://localhost:4096";
+    this.serverUrl = ctx.serverUrl?.origin ?? "http://localhost:4096";
     this.enabled = tmuxConfig.enabled && isInsideTmux();
 
     log("[tmux-session-manager] initialized", {
