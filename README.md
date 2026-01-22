@@ -281,9 +281,7 @@ Code implementation, refactoring, testing, verification. *Execute the plan - no 
 
 ### Tmux Integration
 
-> ⚠️ **Temporary workaround:** Start OpenCode with `--port` to enable tmux integration. The port must match the `OPENCODE_PORT` environment variable (default: 4096). This is required until the upstream issue is resolved.
-
-> ⚠️ **Known Issue:** When the server port is enabled, only one OpenCode instance can be opened at a time. We're tracking this in [issue #15](https://github.com/alvinunreal/oh-my-opencode-slim/issues/15), and there's an upstream PR to OpenCode: [opencode#9099](https://github.com/anomalyco/opencode/issues/9099).
+> ⚠️ **Temporary workaround:** Start OpenCode with `--port` to enable tmux integration. The port must match the `OPENCODE_PORT` environment variable (default: 4096). This is required until the upstream issue is resolved. [opencode#9099](https://github.com/anomalyco/opencode/issues/9099).
 
 <img src="img/tmux.png" alt="Tmux Integration" width="800">
 
@@ -292,6 +290,17 @@ Code implementation, refactoring, testing, verification. *Execute the plan - no 
 #### Quick Setup
 
 1. **Enable tmux integration** in `oh-my-opencode-slim.json` (see [Plugin Config](#plugin-config-oh-my-opencode-slimjson)).
+
+  ```json
+  {
+    "tmux": {
+      "enabled": true,
+      "layout": "main-vertical",
+      "main_pane_size": 60
+    }
+  }
+  ```
+
 2. **Run OpenCode inside tmux**:
     ```bash
     tmux
@@ -307,19 +316,6 @@ Code implementation, refactoring, testing, verification. *Execute the plan - no 
 
    This allows multiple OpenCode instances on different ports.
 
-#### Configuration
-
-Add this to your `oh-my-opencode-slim.json`:
-
-```json
-{
-  "tmux": {
-    "enabled": true,
-    "layout": "main-vertical",
-    "main_pane_size": 60
-  }
-}
-```
 
 #### Layout Options
 
@@ -330,8 +326,6 @@ Add this to your `oh-my-opencode-slim.json`:
 | `tiled` | All panes in equal-sized grid |
 | `even-horizontal` | All panes side by side |
 | `even-vertical` | All panes stacked vertically |
-
-*See the [Option Reference](#option-reference) for detailed configuration.*
 
 ---
 
