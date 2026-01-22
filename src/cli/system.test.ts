@@ -36,13 +36,13 @@ describe("system", () => {
 
   test("fetchLatestVersion returns null on error", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = mock(async () => {
-      return {
-        ok: false
-      }
-    }) as any
-
     try {
+      globalThis.fetch = mock(async () => {
+        return {
+          ok: false
+        }
+      }) as any
+
       const version = await fetchLatestVersion("any-package")
       expect(version).toBeNull()
     } finally {
