@@ -55,44 +55,52 @@ export const MODEL_MAPPINGS = {
     designer: "openai/gpt-5.1-codex-mini",
     fixer: "openai/gpt-5.1-codex-mini",
   },
-  opencode: {
+  "zen-free": {
     orchestrator: "opencode/glm-4.7-free",
     oracle: "opencode/glm-4.7-free",
-    librarian: "opencode/glm-4.7-free",
-    explorer: "opencode/glm-4.7-free",
-    designer: "opencode/glm-4.7-free",
-    fixer: "opencode/glm-4.7-free",
+    librarian: "opencode/grok-code",
+    explorer: "opencode/grok-code",
+    designer: "opencode/grok-code",
+    fixer: "opencode/grok-code",
   },
 } as const;
 
 export function generateLiteConfig(installConfig: InstallConfig): Record<string, unknown> {
-  // Priority: antigravity > openai > opencode (Zen free models)
+  // Determine base provider
   const baseProvider = installConfig.hasAntigravity
     ? "antigravity"
     : installConfig.hasOpenAI
       ? "openai"
-      : installConfig.hasOpencodeZen
-        ? "opencode"
-        : "opencode"; // Default to Zen free models
+      : "zen-free";
 
-  const config: Record<string, unknown> = { agents: {} };
+  const config: Record<string, unknown> = {
+    preset: baseProvider,
+    presets: {},
+  };
 
-  if (baseProvider) {
-    // Start with base provider models and include default skills
+  // Generate all presets
+  for (const [providerName, models] of Object.entries(MODEL_MAPPINGS)) {
     const agents: Record<string, { model: string; skills: string[] }> = Object.fromEntries(
-      Object.entries(MODEL_MAPPINGS[baseProvider]).map(([k, v]) => [
+      Object.entries(models).map(([k, v]) => [
         k,
         { model: v, skills: DEFAULT_AGENT_SKILLS[k as keyof typeof DEFAULT_AGENT_SKILLS] ?? [] },
       ])
     );
+    (config.presets as Record<string, unknown>)[providerName] = { agents };
+  }
 
-    // Apply provider-specific overrides for mixed configurations
-    if (installConfig.hasAntigravity) {
-      if (installConfig.hasOpenAI) {
-        agents["oracle"] = { model: "openai/gpt-5.2-codex", skills: DEFAULT_AGENT_SKILLS["oracle"] ?? [] };
-      }
-    }
-    config.agents = agents;
+  // Handle mixed configuration (antigravity + openai)
+  if (installConfig.hasAntigravity && installConfig.hasOpenAI) {
+    const mixedAgents: Record<string, string> = { ...MODEL_MAPPINGS.antigravity };
+    mixedAgents.oracle = "openai/gpt-5.2-codex";
+    const agents: Record<string, { model: string; skills: string[] }> = Object.fromEntries(
+      Object.entries(mixedAgents).map(([k, v]) => [
+        k,
+        { model: v, skills: DEFAULT_AGENT_SKILLS[k as keyof typeof DEFAULT_AGENT_SKILLS] ?? [] },
+      ])
+    );
+    (config.presets as Record<string, unknown>)["antigravity-openai"] = { agents };
+    config.preset = "antigravity-openai";
   }
 
   if (installConfig.hasTmux) {

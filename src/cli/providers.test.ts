@@ -12,8 +12,8 @@ describe("providers", () => {
       hasTmux: false,
     })
 
-    expect(config.agents).toBeDefined()
-    const agents = config.agents as any
+    expect(config.preset).toBe("antigravity")
+    const agents = (config.presets as any).antigravity.agents
     expect(agents.orchestrator.model).toBe(MODEL_MAPPINGS.antigravity.orchestrator)
     expect(agents.fixer.model).toBe(MODEL_MAPPINGS.antigravity.fixer)
   })
@@ -26,7 +26,8 @@ describe("providers", () => {
       hasTmux: false,
     })
 
-    const agents = config.agents as any
+    expect(config.preset).toBe("antigravity-openai")
+    const agents = (config.presets as any).antigravity-openai.agents
     expect(agents.orchestrator.model).toBe(MODEL_MAPPINGS.antigravity.orchestrator)
     expect(agents.oracle.model).toBe(MODEL_MAPPINGS.openai.oracle)
   })
@@ -39,11 +40,12 @@ describe("providers", () => {
       hasTmux: false,
     })
 
-    const agents = config.agents as any
+    expect(config.preset).toBe("openai")
+    const agents = (config.presets as any).openai.agents
     expect(agents.orchestrator.model).toBe(MODEL_MAPPINGS.openai.orchestrator)
   })
 
-  test("generateLiteConfig uses opencode zen if no antigravity or openai", () => {
+  test("generateLiteConfig uses zen-free if no antigravity or openai", () => {
     const config = generateLiteConfig({
       hasAntigravity: false,
       hasOpenAI: false,
@@ -51,8 +53,9 @@ describe("providers", () => {
       hasTmux: false,
     })
 
-    const agents = config.agents as any
-    expect(agents.orchestrator.model).toBe(MODEL_MAPPINGS.opencode.orchestrator)
+    expect(config.preset).toBe("zen-free")
+    const agents = (config.presets as any)["zen-free"].agents
+    expect(agents.orchestrator.model).toBe(MODEL_MAPPINGS["zen-free"].orchestrator)
   })
 
   test("generateLiteConfig enables tmux when requested", () => {
@@ -75,7 +78,7 @@ describe("providers", () => {
       hasTmux: false,
     })
 
-    const agents = config.agents as any
+    const agents = (config.presets as any).antigravity.agents
     expect(agents.orchestrator.skills).toContain("*")
     expect(agents.fixer.skills).toBeDefined()
   })
