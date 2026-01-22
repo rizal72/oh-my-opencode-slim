@@ -112,6 +112,12 @@ export function loadPluginConfig(directory: string): PluginConfig {
     };
   }
 
+  // Override preset from environment variable if set
+  const envPreset = process.env.OH_MY_OPENCODE_SLIM_PRESET;
+  if (envPreset) {
+    config.preset = envPreset;
+  }
+
   // Resolve preset and merge with root agents
   if (config.preset && config.presets?.[config.preset]) {
     const preset = config.presets[config.preset];

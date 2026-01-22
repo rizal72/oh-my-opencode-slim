@@ -392,3 +392,99 @@ describe("preset resolution", () => {
     expect(loadPluginConfig(projectDir)).toEqual({})
   })
 })
+
+describe("environment variable preset override", () => {
+  let tempDir: string
+  let originalEnv: typeof process.env
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "env-preset-test-"))
+    originalEnv = { ...process.env }
+    process.env.XDG_CONFIG_HOME = path.join(tempDir, "user-config")
+  })
+
+  afterEach(() => {
+    fs.rmSync(tempDir, { recursive: true, force: true })
+    process.env = originalEnv
+  })
+
+  test("Env var overrides preset from config file", () => {
+    const projectDir = path.join(tempDir, "project")
+    const projectConfigDir = path.join(projectDir, ".opencode")
+    fs.mkdirSync(projectConfigDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(projectConfigDir, "oh-my-opencode-slim.json"),
+      JSON.stringify({
+        preset: "config-preset",
+        presets: {
+          "config-preset": { oracle: { model: "config-model" } },
+          "env-preset": { oracle: { model: "env-model" } }
+        }
+      })
+    )
+
+    process.env.OH_MY_OPENCODE_SLIM_PRESET = "env-preset"
+    const config = loadPluginConfig(projectDir)
+    expect(config.preset).toBe("env-preset")
+    expect(config.agents?.oracle?.model).toBe("env-model")
+  })
+
+  test("Env var works when config has no preset", () => {
+    const projectDir = path.join(tempDir, "project")
+    const projectConfigDir = path.join(projectDir, ".opencode")
+    fs.mkdirSync(projectConfigDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(projectConfigDir, "oh-my-opencode-slim.json"),
+      JSON.stringify({
+        presets: {
+          "env-preset": { oracle: { model: "env-model" } }
+        }
+      })
+    )
+
+    process.env.OH_MY_OPENCODE_SLIM_PRESET = "env-preset"
+    const config = loadPluginConfig(projectDir)
+    expect(config.preset).toBe("env-preset")
+    expect(config.agents?.oracle?.model).toBe("env-model")
+  })
+
+  test("Env var is ignored if empty string", () => {
+    const projectDir = path.join(tempDir, "project")
+    const projectConfigDir = path.join(projectDir, ".opencode")
+    fs.mkdirSync(projectConfigDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(projectConfigDir, "oh-my-opencode-slim.json"),
+      JSON.stringify({
+        preset: "config-preset",
+        presets: {
+          "config-preset": { oracle: { model: "config-model" } }
+        }
+      })
+    )
+
+    process.env.OH_MY_OPENCODE_SLIM_PRESET = ""
+    const config = loadPluginConfig(projectDir)
+    expect(config.preset).toBe("config-preset")
+    expect(config.agents?.oracle?.model).toBe("config-model")
+  })
+
+  test("Env var is ignored if undefined", () => {
+    const projectDir = path.join(tempDir, "project")
+    const projectConfigDir = path.join(projectDir, ".opencode")
+    fs.mkdirSync(projectConfigDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(projectConfigDir, "oh-my-opencode-slim.json"),
+      JSON.stringify({
+        preset: "config-preset",
+        presets: {
+          "config-preset": { oracle: { model: "config-model" } }
+        }
+      })
+    )
+
+    delete process.env.OH_MY_OPENCODE_SLIM_PRESET
+    const config = loadPluginConfig(projectDir)
+    expect(config.preset).toBe("config-preset")
+    expect(config.agents?.oracle?.model).toBe("config-model")
+  })
+})

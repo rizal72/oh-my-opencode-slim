@@ -462,18 +462,49 @@ You can disable specific MCP servers by adding them to the `disabled_mcps` array
 
 The installer generates this file based on your providers. You can manually customize it to mix and match models.
 
+### Presets
+
+The installer generates presets for different provider combinations. Switch between them by changing the `preset` field.
+
 <details open>
 <summary><b>Example: Antigravity + OpenAI (Recommended)</b></summary>
 
 ```json
 {
-  "agents": {
-    "orchestrator": { "model": "google/claude-opus-4-5-thinking", "skills": ["*"] },
-    "oracle": { "model": "openai/gpt-5.2-codex", "skills": [] },
-    "librarian": { "model": "google/gemini-3-flash", "skills": [] },
-    "explorer": { "model": "google/gemini-3-flash", "skills": [] },
-    "designer": { "model": "google/gemini-3-flash", "skills": ["playwright"] },
-    "fixer": { "model": "google/gemini-3-flash", "skills": [] }
+  "preset": "antigravity-openai",
+  "presets": {
+    "antigravity": {
+      "orchestrator": { "model": "google/claude-opus-4-5-thinking", "skills": ["*"] },
+      "oracle": { "model": "google/claude-opus-4-5-thinking", "skills": [] },
+      "librarian": { "model": "google/gemini-3-flash", "skills": [] },
+      "explorer": { "model": "google/gemini-3-flash", "skills": [] },
+      "designer": { "model": "google/gemini-3-flash", "skills": ["playwright"] },
+      "fixer": { "model": "google/gemini-3-flash", "skills": [] }
+    },
+    "openai": {
+      "orchestrator": { "model": "openai/gpt-5.2-codex", "skills": ["*"] },
+      "oracle": { "model": "openai/gpt-5.2-codex", "skills": [] },
+      "librarian": { "model": "openai/gpt-5.1-codex-mini", "skills": [] },
+      "explorer": { "model": "openai/gpt-5.1-codex-mini", "skills": [] },
+      "designer": { "model": "openai/gpt-5.1-codex-mini", "skills": ["playwright"] },
+      "fixer": { "model": "openai/gpt-5.1-codex-mini", "skills": [] }
+    },
+    "zen-free": {
+      "orchestrator": { "model": "opencode/glm-4.7-free", "skills": ["*"] },
+      "oracle": { "model": "opencode/glm-4.7-free", "skills": [] },
+      "librarian": { "model": "opencode/grok-code", "skills": [] },
+      "explorer": { "model": "opencode/grok-code", "skills": [] },
+      "designer": { "model": "opencode/grok-code", "skills": ["playwright"] },
+      "fixer": { "model": "opencode/grok-code", "skills": [] }
+    },
+    "antigravity-openai": {
+      "orchestrator": { "model": "google/claude-opus-4-5-thinking", "skills": ["*"] },
+      "oracle": { "model": "openai/gpt-5.2-codex", "skills": [] },
+      "librarian": { "model": "google/gemini-3-flash", "skills": [] },
+      "explorer": { "model": "google/gemini-3-flash", "skills": [] },
+      "designer": { "model": "google/gemini-3-flash", "skills": ["playwright"] },
+      "fixer": { "model": "google/gemini-3-flash", "skills": [] }
+    }
   },
   "tmux": {
     "enabled": true,
@@ -484,44 +515,63 @@ The installer generates this file based on your providers. You can manually cust
 ```
 </details>
 
-<details>
-<summary><b>Example: Antigravity Only</b></summary>
+**Available Presets:**
+
+| Preset | Description |
+|--------|-------------|
+| `antigravity` | Google models (Claude Opus + Gemini Flash) |
+| `openai` | OpenAI models (GPT-5.2 + GPT-5.1-mini) |
+| `zen-free` | Free models (GLM-4.7 + Grok Code) |
+| `antigravity-openai` | Mixed: Antigravity for most agents, OpenAI for Oracle |
+
+**Switching Presets:**
+
+Simply change the `preset` field to switch between provider configurations:
 
 ```json
 {
-  "agents": {
-    "orchestrator": { "model": "google/claude-opus-4-5-thinking", "skills": ["*"] },
-    "oracle": { "model": "google/claude-opus-4-5-thinking", "skills": [] },
-    "librarian": { "model": "google/gemini-3-flash", "skills": [] },
-    "explorer": { "model": "google/gemini-3-flash", "skills": [] },
-    "designer": { "model": "google/gemini-3-flash", "skills": ["playwright"] },
-    "fixer": { "model": "google/gemini-3-flash", "skills": [] }
-  }
+  "preset": "openai"  // or "antigravity", "zen-free", "antigravity-openai"
 }
 ```
-</details>
 
-<details>
-<summary><b>Example: OpenAI Only</b></summary>
+**Environment Variable Override:**
+
+You can override the preset using an environment variable:
+
+```bash
+export OH_MY_OPENCODE_SLIM_PRESET=openai
+opencode
+```
+
+This is useful for:
+- Testing different presets without editing config files
+- CI/CD pipelines with different provider configurations
+- Temporary preset switching
+
+The environment variable takes precedence over the `preset` field in the config file.
+
+**Customizing Agents:**
+
+Override specific agents by adding an `agents` section:
 
 ```json
 {
+  "preset": "antigravity",
+  "presets": { ... },
   "agents": {
-    "orchestrator": { "model": "openai/gpt-5.2-codex", "skills": ["*"] },
-    "oracle": { "model": "openai/gpt-5.2-codex", "skills": [] },
-    "librarian": { "model": "openai/gpt-5.1-codex-mini", "skills": [] },
-    "explorer": { "model": "openai/gpt-5.1-codex-mini", "skills": [] },
-    "designer": { "model": "openai/gpt-5.1-codex-mini", "skills": ["playwright"] },
-    "fixer": { "model": "openai/gpt-5.1-codex-mini", "skills": [] }
+    "orchestrator": { "temperature": 0.7 }
   }
 }
 ```
-</details>
+
+The `agents` section merges with the selected preset, allowing you to override temperature, skills, or other settings without modifying the preset itself.
 
 #### Option Reference
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `preset` | string | - | Name of the preset to use (e.g., `"antigravity"`, `"openai"`) |
+| `presets` | object | - | Named preset configurations containing agent mappings |
 | `tmux.enabled` | boolean | `false` | Enable tmux pane spawning for sub-agents |
 | `tmux.layout` | string | `"main-vertical"` | Layout preset: `main-vertical`, `main-horizontal`, `tiled`, `even-horizontal`, `even-vertical` |
 | `tmux.main_pane_size` | number | `60` | Main pane size as percentage (20-80) |
