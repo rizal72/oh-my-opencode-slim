@@ -12,6 +12,8 @@ interface TrackedSession {
   parentId: string;
   title: string;
   createdAt: number;
+  lastSeenAt: number;
+  missingSince?: number;
 }
 
 /**
@@ -23,6 +25,7 @@ interface SessionCreatedEvent {
 }
 
 const SESSION_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+const SESSION_MISSING_GRACE_MS = POLL_INTERVAL_BACKGROUND_MS * 3;
 
 /**
  * TmuxSessionManager tracks child sessions (created by OpenCode's Task tool)
@@ -93,12 +96,14 @@ export class TmuxSessionManager {
     });
 
     if (paneResult.success && paneResult.paneId) {
+      const now = Date.now();
       this.sessions.set(sessionId, {
         sessionId,
         paneId: paneResult.paneId,
         parentId,
         title,
-        createdAt: Date.now(),
+        createdAt: now,
+        lastSeenAt: now,
       });
 
       log("[tmux-session-manager] pane spawned", {
@@ -141,14 +146,23 @@ export class TmuxSessionManager {
       for (const [sessionId, tracked] of this.sessions.entries()) {
         const status = allStatuses[sessionId];
 
-        // Session is idle (completed). We don't close on !status here to prevent 
-        // aggressive closure during transient API blips.
+        // Session is idle (completed).
         const isIdle = status?.type === "idle";
+
+        if (status) {
+          tracked.lastSeenAt = now;
+          tracked.missingSince = undefined;
+        } else if (!tracked.missingSince) {
+          tracked.missingSince = now;
+        }
+
+        const missingTooLong = !!tracked.missingSince
+          && now - tracked.missingSince >= SESSION_MISSING_GRACE_MS;
 
         // Check for timeout as a safety fallback
         const isTimedOut = now - tracked.createdAt > SESSION_TIMEOUT_MS;
 
-        if (isIdle || isTimedOut) {
+        if (isIdle || missingTooLong || isTimedOut) {
           sessionsToClose.push(sessionId);
         }
       }
