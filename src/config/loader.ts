@@ -112,5 +112,12 @@ export function loadPluginConfig(directory: string): PluginConfig {
     };
   }
 
+  // Resolve preset and merge with root agents
+  if (config.preset && config.presets?.[config.preset]) {
+    const preset = config.presets[config.preset];
+    // Merge preset agents with root agents (root overrides)
+    config.agents = deepMerge(preset, config.agents);
+  }
+
   return config;
 }
