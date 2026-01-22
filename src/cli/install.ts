@@ -99,7 +99,7 @@ function printAgentModels(config: InstallConfig): void {
   const liteConfig = generateLiteConfig(config)
   const presetName = liteConfig.preset as string
   const presets = liteConfig.presets as Record<string, any>
-  const agents = presets[presetName]?.agents as Record<string, { model: string; skills: string[] }>
+  const agents = presets[presetName] as Record<string, { model: string; skills: string[] }>
 
   if (!agents || Object.keys(agents).length === 0) return
 

@@ -175,7 +175,7 @@ describe("config-io", () => {
       preset: "openai",
       presets: {
         openai: {
-          agents: { orchestrator: { model: "openai/gpt-4" } }
+          orchestrator: { model: "openai/gpt-4" }
         }
       },
       tmux: { enabled: true }

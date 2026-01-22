@@ -550,39 +550,17 @@ This is useful for:
 
 The environment variable takes precedence over the `preset` field in the config file.
 
-**Customizing Agents:**
-
-Override specific agents by adding an `agents` section:
-
-```json
-{
-  "preset": "antigravity",
-  "presets": { ... },
-  "agents": {
-    "orchestrator": { "temperature": 0.7 }
-  }
-}
-```
-
-The `agents` section merges with the selected preset, allowing you to override temperature, skills, or other settings without modifying the preset itself.
-
 #### Option Reference
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `preset` | string | - | Name of the preset to use (e.g., `"antigravity"`, `"openai"`) |
 | `presets` | object | - | Named preset configurations containing agent mappings |
+| `OH_MY_OPENCODE_SLIM_PRESET` | string | - | Environment variable to override the `preset` field |
 | `tmux.enabled` | boolean | `false` | Enable tmux pane spawning for sub-agents |
 | `tmux.layout` | string | `"main-vertical"` | Layout preset: `main-vertical`, `main-horizontal`, `tiled`, `even-horizontal`, `even-vertical` |
 | `tmux.main_pane_size` | number | `60` | Main pane size as percentage (20-80) |
 | `disabled_mcps` | string[] | `[]` | MCP server IDs to disable (e.g., `"websearch"`) |
-| `agents.<name>.model` | string |  -  | Override the LLM for a specific agent |
-| `agents.<name>.variant` | string |  -  | Reasoning effort: `"low"`, `"medium"`, `"high"` |
-| `agents.<name>.skills` | string[] |  -  | Skills this agent can use (`"*"` = all) |
-| `agents.<name>.temperature` | number |  -  | Temperature for this agent (0.0 to 2.0) |
-| `agents.<name>.prompt` | string |  -  | Base prompt override for this agent |
-| `agents.<name>.prompt_append` | string |  -  | Text to append to the base prompt |
-| `agents.<name>.disable` | boolean |  -  | Disable this specific agent |
 
 ---
 

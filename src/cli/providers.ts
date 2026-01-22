@@ -86,7 +86,7 @@ export function generateLiteConfig(installConfig: InstallConfig): Record<string,
         { model: v, skills: DEFAULT_AGENT_SKILLS[k as keyof typeof DEFAULT_AGENT_SKILLS] ?? [] },
       ])
     );
-    (config.presets as Record<string, unknown>)[providerName] = { agents };
+    (config.presets as Record<string, unknown>)[providerName] = agents;
   }
 
   // Handle mixed configuration (antigravity + openai)
@@ -99,7 +99,7 @@ export function generateLiteConfig(installConfig: InstallConfig): Record<string,
         { model: v, skills: DEFAULT_AGENT_SKILLS[k as keyof typeof DEFAULT_AGENT_SKILLS] ?? [] },
       ])
     );
-    (config.presets as Record<string, unknown>)["antigravity-openai"] = { agents };
+    (config.presets as Record<string, unknown>)["antigravity-openai"] = agents;
     config.preset = "antigravity-openai";
   }
 

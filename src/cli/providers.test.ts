@@ -13,7 +13,7 @@ describe("providers", () => {
     })
 
     expect(config.preset).toBe("antigravity")
-    const agents = (config.presets as any).antigravity.agents
+    const agents = (config.presets as any).antigravity
     expect(agents.orchestrator.model).toBe(MODEL_MAPPINGS.antigravity.orchestrator)
     expect(agents.fixer.model).toBe(MODEL_MAPPINGS.antigravity.fixer)
   })
@@ -27,7 +27,7 @@ describe("providers", () => {
     })
 
     expect(config.preset).toBe("antigravity-openai")
-    const agents = (config.presets as any).antigravity-openai.agents
+    const agents = (config.presets as any)["antigravity-openai"]
     expect(agents.orchestrator.model).toBe(MODEL_MAPPINGS.antigravity.orchestrator)
     expect(agents.oracle.model).toBe(MODEL_MAPPINGS.openai.oracle)
   })
@@ -41,7 +41,7 @@ describe("providers", () => {
     })
 
     expect(config.preset).toBe("openai")
-    const agents = (config.presets as any).openai.agents
+    const agents = (config.presets as any).openai
     expect(agents.orchestrator.model).toBe(MODEL_MAPPINGS.openai.orchestrator)
   })
 
@@ -54,7 +54,7 @@ describe("providers", () => {
     })
 
     expect(config.preset).toBe("zen-free")
-    const agents = (config.presets as any)["zen-free"].agents
+    const agents = (config.presets as any)["zen-free"]
     expect(agents.orchestrator.model).toBe(MODEL_MAPPINGS["zen-free"].orchestrator)
   })
 
@@ -78,7 +78,7 @@ describe("providers", () => {
       hasTmux: false,
     })
 
-    const agents = (config.presets as any).antigravity.agents
+    const agents = (config.presets as any).antigravity
     expect(agents.orchestrator.skills).toContain("*")
     expect(agents.fixer.skills).toBeDefined()
   })
