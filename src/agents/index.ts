@@ -1,5 +1,5 @@
 import type { AgentConfig as SDKAgentConfig } from "@opencode-ai/sdk";
-import { DEFAULT_MODELS, SUBAGENT_NAMES, type PluginConfig, type AgentOverrideConfig } from "../config";
+import { DEFAULT_MODELS, SUBAGENT_NAMES, type PluginConfig, type AgentOverrideConfig, loadAgentPrompt } from "../config";
 import { createOrchestratorAgent, type AgentDefinition } from "./orchestrator";
 import { createOracleAgent } from "./oracle";
 import { createLibrarianAgent } from "./librarian";
@@ -9,7 +9,7 @@ import { createFixerAgent } from "./fixer";
 
 export type { AgentDefinition } from "./orchestrator";
 
-type AgentFactory = (model: string) => AgentDefinition;
+type AgentFactory = (model: string, customPrompt?: string, customAppendPrompt?: string) => AgentDefinition;
 
 // Backward Compatibility
 
@@ -86,9 +86,12 @@ export function createAgents(config?: PluginConfig): AgentDefinition[] {
     return DEFAULT_MODELS[name];
   };
 
-  // 1. Gather all sub-agent definitions
+  // 1. Gather all sub-agent definitions with custom prompts
   const protoSubAgents = (Object.entries(SUBAGENT_FACTORIES) as [SubagentName, AgentFactory][]).map(
-    ([name, factory]) => factory(getModelForAgent(name))
+    ([name, factory]) => {
+      const customPrompts = loadAgentPrompt(name);
+      return factory(getModelForAgent(name), customPrompts.prompt, customPrompts.appendPrompt);
+    }
   );
 
   // 2. Apply overrides to each agent
@@ -100,10 +103,15 @@ export function createAgents(config?: PluginConfig): AgentDefinition[] {
     return agent;
   });
 
-  // 3. Create Orchestrator (with its own overrides)
+  // 3. Create Orchestrator (with its own overrides and custom prompts)
   const orchestratorModel =
     getOverride(agentOverrides, "orchestrator")?.model ?? DEFAULT_MODELS["orchestrator"];
-  const orchestrator = createOrchestratorAgent(orchestratorModel);
+  const orchestratorPrompts = loadAgentPrompt("orchestrator");
+  const orchestrator = createOrchestratorAgent(
+    orchestratorModel,
+    orchestratorPrompts.prompt,
+    orchestratorPrompts.appendPrompt
+  );
   applyDefaultPermissions(orchestrator);
   const oOverride = getOverride(agentOverrides, "orchestrator");
   if (oOverride) {

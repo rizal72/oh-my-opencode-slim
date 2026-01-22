@@ -4,6 +4,7 @@ import * as os from "os";
 import { PluginConfigSchema, type PluginConfig } from "./schema";
 
 const CONFIG_FILENAME = "oh-my-opencode-slim.json";
+const PROMPTS_DIR_NAME = "oh-my-opencode-slim";
 
 /**
  * Get the user's configuration directory following XDG Base Directory specification.
@@ -133,4 +134,38 @@ export function loadPluginConfig(directory: string): PluginConfig {
   }
 
   return config;
+}
+
+/**
+ * Load custom prompt for an agent from the prompts directory.
+ * Checks for {agent}.md (replaces default) and {agent}_append.md (appends to default).
+ *
+ * @param agentName - Name of the agent (e.g., "orchestrator", "explorer")
+ * @returns Object with prompt and/or appendPrompt if files exist
+ */
+export function loadAgentPrompt(agentName: string): { prompt?: string; appendPrompt?: string } {
+  const promptsDir = path.join(getUserConfigDir(), "opencode", PROMPTS_DIR_NAME);
+  const result: { prompt?: string; appendPrompt?: string } = {};
+
+  // Check for replacement prompt
+  const promptPath = path.join(promptsDir, `${agentName}.md`);
+  if (fs.existsSync(promptPath)) {
+    try {
+      result.prompt = fs.readFileSync(promptPath, "utf-8");
+    } catch (error) {
+      console.warn(`[oh-my-opencode-slim] Error reading prompt file ${promptPath}:`, error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  // Check for append prompt
+  const appendPromptPath = path.join(promptsDir, `${agentName}_append.md`);
+  if (fs.existsSync(appendPromptPath)) {
+    try {
+      result.appendPrompt = fs.readFileSync(appendPromptPath, "utf-8");
+    } catch (error) {
+      console.warn(`[oh-my-opencode-slim] Error reading append prompt file ${appendPromptPath}:`, error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  return result;
 }

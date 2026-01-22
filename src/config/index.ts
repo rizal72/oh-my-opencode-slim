@@ -1,3 +1,3 @@
 export * from "./schema";
 export * from "./constants";
-export { loadPluginConfig } from "./loader";
+export { loadPluginConfig, loadAgentPrompt } from "./loader";

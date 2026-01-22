@@ -2,7 +2,7 @@ import { describe, expect, test, beforeEach, afterEach, mock, spyOn } from "bun:
 import * as fs from "fs"
 import * as path from "path"
 import * as os from "os"
-import { loadPluginConfig } from "./loader"
+import { loadPluginConfig, loadAgentPrompt } from "./loader"
 
 // Test deepMerge indirectly through loadPluginConfig behavior
 // since deepMerge is not exported

@@ -187,14 +187,22 @@ If the user's approach seems problematic:
 - Ask if they want to proceed anyway
 `;
 
-export function createOrchestratorAgent(model: string): AgentDefinition {
+export function createOrchestratorAgent(model: string, customPrompt?: string, customAppendPrompt?: string): AgentDefinition {
+  let prompt = ORCHESTRATOR_PROMPT;
+
+  if (customPrompt) {
+    prompt = customPrompt;
+  } else if (customAppendPrompt) {
+    prompt = ORCHESTRATOR_PROMPT + "\n\n" + customAppendPrompt;
+  }
+
   return {
     name: "orchestrator",
     description: "AI coding orchestrator that delegates tasks to specialist agents for optimal quality, speed, and cost",
     config: {
       model,
       temperature: 0.1,
-      prompt: ORCHESTRATOR_PROMPT,
+      prompt,
     },
   };
 }
