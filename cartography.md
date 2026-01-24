@@ -10,7 +10,7 @@ Cartography operates through an orchestrated "bottom-up" analysis pattern, combi
 A lightweight utility designed for the Orchestrator to handle deterministic file operations.
 - **Scanning**: Discovers directory structures while respecting `.gitignore` and default excludes (node_modules, .git, etc.).
 - **Hashing**: Calculates MD5 hashes for individual files and a composite "Folder Hash" (hash of all valid file hashes in that directory).
-- **Hash File**: Manages a minimal `.codemap.json` file to track state:
+- **Hash File**: Manages a single root `.codemap.json` file to track state:
   ```json
   {
     "h": "[folder_hash]",
@@ -40,7 +40,7 @@ Explorers are tasked with generating the human/AI-readable body of the `codemap.
 ## 🔄 Operational Workflow
 
 1.  **Discovery Phase**: Orchestrator runs the helper script to scan the root and identifies "High Importance" directories.
-2.  **Initial Hash Check**: The script identifies which folders are "Dirty" (hash mismatch or missing `.codemap.json`).
+2.  **Initial Hash Check**: The script identifies which folders are "Dirty" (hash mismatch or missing root `.codemap.json`).
 3.  **Leaf-Node Analysis**: Explorers are dispatched to the deepest sub-folders first.
 4.  **Incremental Update**: 
     - If a file hash changes, the Explorer re-analyzes only that file and updates the Folder Summary.
@@ -73,7 +73,7 @@ The resulting `codemap.md` files serve as a "Pre-flight Checklist" for any futur
 **A:** One `codemap.md` per folder. Sub-folders must be mapped before their parents so the parent can synthesize the sub-folder's high-level purpose into its own map.
 
 **Q: What is the script's specific responsibility?**
-**A:** The script is deterministic. It calculates hashes, manages `.codemap.json`, and scaffolds hash state. It *never* generates the descriptive body; that is reserved for the Explorer agents.
+**A:** The script is deterministic. It calculates hashes, manages root `.codemap.json`, and scaffolds hash state. It *never* generates the descriptive body; that is reserved for the Explorer agents.
 
 **Q: How is parallelism handled?**
 **A:** Explorers run in parallel for all "leaf" folders (folders with no sub-folders). Once a layer is complete, the Orchestrator moves up the tree.
@@ -91,7 +91,7 @@ User: "I need codemaps for this codebase so I can understand the architecture."
 
 **2.1 - Discovery Phase**
 ```
-Orchestrator calls: cartography scan {folder} --extensions {exts}
+Orchestrator calls: cartography scan {folder} --extensions {exts} --exclude tests,docs
 Response: { folder: ".", files: ["src/index.ts", "src/config.ts", ...] }
 ```
 
@@ -176,7 +176,7 @@ User: "I made some changes. Update the codemaps."
 
 Orchestrator: "Checking for changes..."
 
-Orchestrator calls: cartography changes src --extensions ts
+Orchestrator calls: cartography changes src --extensions ts --exclude tests
 
 Response: {
   folder: "src",

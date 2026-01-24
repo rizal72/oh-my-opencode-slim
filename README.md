@@ -703,7 +703,7 @@ Use after major refactors or before finalizing PRs. Identifies unnecessary compl
 **Codebase mapping and structure documentation.**
 
 - **Hierarchical Mapping**: Generate `codemap.md` files at each folder level to document code organization.
-- **Hash-Based Change Detection**: Uses `.codemap.json` per folder and only re-maps files that have changed since last run.
+- **Hash-Based Change Detection**: Uses a root `.codemap.json` and only re-maps files that have changed since last run.
 - **Flow Documentation**: Captures purpose, exports, dependencies, and data flows for each file.
 - **Parallel Exploration**: Uses multiple Explorer agents to map large codebases efficiently.
 
@@ -716,10 +716,10 @@ cartography scan <folder> --extensions ts,tsx,js
 cartography hash <folder> --extensions ts,tsx,js
 
 # Generate/update .codemap.json
-cartography update <folder> --extensions ts,tsx,js
+cartography update <folder> --extensions ts,tsx,js --exclude tests
 
 # Report changed files without writing hashes
-cartography changes <folder> --extensions ts,tsx,js
+cartography changes <folder> --extensions ts,tsx,js --exclude tests
 ```
 
 See [cartography.md](cartography.md) for detailed design documentation.

@@ -25,6 +25,12 @@ export function createCartographyTool(ctx: PluginInput): ToolDefinition {
         .describe(
           'File extensions to map, comma-separated without dots (e.g., "ts,tsx,js")',
         ),
+      exclude: tool.schema
+        .string()
+        .optional()
+        .describe(
+          'Additional ignore patterns, comma-separated (e.g., "tests,**/*.spec.ts")',
+        ),
     },
     execute: async (args, toolContext) => {
       const sessionDir = await getSessionDirectory(ctx, toolContext);
@@ -33,6 +39,7 @@ export function createCartographyTool(ctx: PluginInput): ToolDefinition {
       const scriptPath = join(ctx.directory, 'scripts/cartography.ts');
 
       const extensions = (args.extensions as string) || 'ts,tsx,js,jsx';
+      const exclude = (args.exclude as string) || '';
       const commandArgs = [
         'run',
         scriptPath,
@@ -40,6 +47,10 @@ export function createCartographyTool(ctx: PluginInput): ToolDefinition {
         (args.folder as string) || '.',
         `--extensions=${extensions}`,
       ];
+
+      if (exclude) {
+        commandArgs.push(`--exclude=${exclude}`);
+      }
 
       const result = await Bun.$`bun ${commandArgs}`.cwd(sessionDir);
 

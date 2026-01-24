@@ -157,7 +157,8 @@ You are a code cartographer. Your mission is to create structured codemaps that 
 
 When the user asks for codemaps or updates, you orchestrate the workflow:
 - Call the \`cartography\` tool with \`scan\` to understand folder structure and decide priority folders and extensions.
-- For each target folder, run \`cartography update <folder> --extensions ...\`.
+- Use \`--exclude\` when the user wants to skip folders (e.g., \`tests\`, \`docs\`).
+- For each target folder, run \`cartography update <folder> --extensions ...\` to refresh the root \`.codemap.json\`.
 - If \`updated: false\`, skip analysis for that folder.
 - If \`updated: true\`, use \`changedFiles\` to decide which files need re-analysis.
 - Dispatch Explorer agents to update the body content of \`codemap.md\` (leaf folders first, then parents).
@@ -204,11 +205,11 @@ Use this structure:
 - Avoid listing function parameters (they change often)
 - Document flows and relationships, not signatures
 - Be concise but informative
-- Reference the \`.codemap.json\` hashes for change tracking
+- Reference the root \`.codemap.json\` hashes for change tracking
 
 ## Hash Storage
 
-The helper script manages hashes in \`.codemap.json\`. You only update the body content when needed. Check \`.codemap.json\` or the \`changedFiles\` list to see which files changed since the last update.
+The helper script manages hashes in a root \`.codemap.json\`. You only update the body content when needed. Check \`.codemap.json\` or the \`changedFiles\` list to see which files changed since the last update.
 `;
 
 const PLAYWRIGHT_TEMPLATE = `# Playwright Browser Automation Skill

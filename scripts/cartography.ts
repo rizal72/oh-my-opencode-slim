@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { createMD5, md5 } from 'hash-wasm';
 import ignore from 'ignore';
 
@@ -12,6 +12,10 @@ interface FileEntry {
 interface CodemapData {
   h: string;
   f: FileEntry[];
+}
+
+interface RootCodemapData {
+  folders: Record<string, CodemapData>;
 }
 
 const DEFAULT_IGNORE = [
@@ -27,15 +31,20 @@ const DEFAULT_IGNORE = [
   '.DS_Store',
 ];
 
-function parseGitignore(folder: string): ignore.Ignore {
+function parseGitignore(folder: string, extraIgnores: string[]): ignore.Ignore {
   const gitignorePath = join(folder, '.gitignore');
+  const ig = ignore();
+
+  if (extraIgnores.length > 0) {
+    ig.add(extraIgnores);
+  }
 
   if (existsSync(gitignorePath)) {
     const content = readFileSync(gitignorePath, 'utf-8');
-    return ignore().add(content.split('\n'));
+    ig.add(content.split('\n'));
   }
 
-  return ignore();
+  return ig;
 }
 
 function shouldIgnore(relPath: string, ignorer: ignore.Ignore): boolean {
@@ -117,20 +126,27 @@ async function calculateFolderHash(
   return hasher.digest();
 }
 
-function readCodemapData(codemapPath: string): CodemapData | null {
+function readRootCodemapData(codemapPath: string): RootCodemapData {
   if (!existsSync(codemapPath)) {
-    return null;
+    return { folders: {} };
   }
 
   try {
     const content = readFileSync(codemapPath, 'utf-8');
-    return JSON.parse(content) as CodemapData;
+    const parsed = JSON.parse(content) as RootCodemapData;
+    if (!parsed.folders) {
+      return { folders: {} };
+    }
+    return parsed;
   } catch {
-    return null;
+    return { folders: {} };
   }
 }
 
-function writeCodemapData(codemapPath: string, data: CodemapData): void {
+function writeRootCodemapData(
+  codemapPath: string,
+  data: RootCodemapData,
+): void {
   const content = `${JSON.stringify(data, null, 2)}\n`;
   writeFileSync(codemapPath, content, 'utf-8');
 }
@@ -164,14 +180,18 @@ function diffFiles(
 async function updateCodemap(
   folder: string,
   extensions: string[],
+  extraIgnores: string[],
 ): Promise<{ updated: boolean; fileCount: number; changedFiles: string[] }> {
-  const ignorer = parseGitignore(folder);
+  const ignorer = parseGitignore(folder, extraIgnores);
   const files = getFiles(folder, extensions, ignorer);
   const fileHashes = await calculateHashes(folder, files);
   const folderHash = await calculateFolderHash(fileHashes);
 
-  const codemapPath = join(folder, '.codemap.json');
-  const existing = readCodemapData(codemapPath);
+  const rootPath = process.cwd();
+  const codemapPath = join(rootPath, '.codemap.json');
+  const rootData = readRootCodemapData(codemapPath);
+  const folderKey = relative(rootPath, folder) || '.';
+  const existing = rootData.folders[folderKey];
 
   if (existing?.h === folderHash) {
     return { updated: false, fileCount: files.length, changedFiles: [] };
@@ -183,7 +203,8 @@ async function updateCodemap(
     f: files.map((p) => ({ p, h: fileHashes.get(p)! })),
   };
 
-  writeCodemapData(codemapPath, data);
+  rootData.folders[folderKey] = data;
+  writeRootCodemapData(codemapPath, rootData);
 
   return { updated: true, fileCount: files.length, changedFiles };
 }
@@ -191,17 +212,21 @@ async function updateCodemap(
 async function getChanges(
   folder: string,
   extensions: string[],
+  extraIgnores: string[],
 ): Promise<{
   fileCount: number;
   folderHash: string;
   changedFiles: string[];
 }> {
-  const ignorer = parseGitignore(folder);
+  const ignorer = parseGitignore(folder, extraIgnores);
   const files = getFiles(folder, extensions, ignorer);
   const fileHashes = await calculateHashes(folder, files);
   const folderHash = await calculateFolderHash(fileHashes);
-  const codemapPath = join(folder, '.codemap.json');
-  const existing = readCodemapData(codemapPath);
+  const rootPath = process.cwd();
+  const codemapPath = join(rootPath, '.codemap.json');
+  const rootData = readRootCodemapData(codemapPath);
+  const folderKey = relative(rootPath, folder) || '.';
+  const existing = rootData.folders[folderKey];
   const changedFiles = diffFiles(fileHashes, existing);
 
   return {
@@ -217,7 +242,9 @@ async function main() {
   const folder = folderArg ? resolve(folderArg) : process.cwd();
 
   const extArg = process.argv.find((a) => a.startsWith('--extensions'));
+  const excludeArg = process.argv.find((a) => a.startsWith('--exclude'));
   let extensions: string[];
+  let extraIgnores: string[] = [];
 
   if (extArg) {
     const extList = extArg.split('=')[1];
@@ -232,16 +259,26 @@ async function main() {
     extensions = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs'];
   }
 
+  if (excludeArg) {
+    const excludeList = excludeArg.split('=')[1];
+    if (excludeList) {
+      extraIgnores = excludeList
+        .split(',')
+        .map((e) => e.trim())
+        .filter(Boolean);
+    }
+  }
+
   switch (command) {
     case 'scan': {
-      const ignorer = parseGitignore(folder);
+      const ignorer = parseGitignore(folder, extraIgnores);
       const files = getFiles(folder, extensions, ignorer);
       console.log(JSON.stringify({ folder, files }, null, 2));
       break;
     }
 
     case 'hash': {
-      const ignorer = parseGitignore(folder);
+      const ignorer = parseGitignore(folder, extraIgnores);
       const files = getFiles(folder, extensions, ignorer);
       const fileHashes = await calculateHashes(folder, files);
       const folderHash = await calculateFolderHash(fileHashes);
@@ -259,7 +296,7 @@ async function main() {
     }
 
     case 'update': {
-      const result = await updateCodemap(folder, extensions);
+      const result = await updateCodemap(folder, extensions, extraIgnores);
       if (result.updated) {
         console.log(
           JSON.stringify(
@@ -290,7 +327,7 @@ async function main() {
     }
 
     case 'changes': {
-      const result = await getChanges(folder, extensions);
+      const result = await getChanges(folder, extensions, extraIgnores);
       console.log(
         JSON.stringify(
           {
@@ -309,7 +346,7 @@ async function main() {
 
     default:
       console.error(
-        'Usage: cartography <scan|hash|update|changes> [folder] [--extensions ts,tsx,js]',
+        'Usage: cartography <scan|hash|update|changes> [folder] [--extensions ts,tsx,js] [--exclude tests,dist]',
       );
       process.exit(1);
   }
