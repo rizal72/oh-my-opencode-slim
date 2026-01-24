@@ -591,23 +591,14 @@ The installer generates this file based on your providers. You can manually cust
 
 ### Presets
 
-The installer generates presets for different provider combinations. Switch between them by changing the `preset` field.
+The installer generates presets for different provider combinations. Switch between them by changing the `preset` field or using the `OH_MY_OPENCODE_SLIM_PRESET` environment variable.
 
-<details open>
-<summary><b>Example: Antigravity + OpenAI (Recommended)</b></summary>
+#### OpenAI
 
 ```json
 {
-  "preset": "antigravity-openai",
+  "preset": "openai",
   "presets": {
-    "antigravity": {
-      "orchestrator": { "model": "google/claude-opus-4-5-thinking", "skills": ["*"], "mcps": ["websearch"] },
-      "oracle": { "model": "google/claude-opus-4-5-thinking", "variant": "high", "skills": [], "mcps": [] },
-      "librarian": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
-      "explorer": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": [] },
-      "designer": { "model": "google/gemini-3-flash", "variant": "medium", "skills": ["playwright"], "mcps": [] },
-      "fixer": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": [] }
-    },
     "openai": {
       "orchestrator": { "model": "openai/gpt-5.2-codex", "skills": ["*"], "mcps": ["websearch"] },
       "oracle": { "model": "openai/gpt-5.2-codex", "variant": "high", "skills": [], "mcps": [] },
@@ -615,55 +606,84 @@ The installer generates presets for different provider combinations. Switch betw
       "explorer": { "model": "openai/gpt-5.1-codex-mini", "variant": "low", "skills": [], "mcps": [] },
       "designer": { "model": "openai/gpt-5.1-codex-mini", "variant": "medium", "skills": ["playwright"], "mcps": [] },
       "fixer": { "model": "openai/gpt-5.1-codex-mini", "variant": "low", "skills": [], "mcps": [] }
-    },
-    "zen-free": {
-      "orchestrator": { "model": "opencode/grok-code", "skills": ["*"], "mcps": ["websearch"] },
-      "oracle": { "model": "opencode/grok-code", "variant": "high", "skills": [], "mcps": [] },
-      "librarian": { "model": "opencode/grok-code", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
-      "explorer": { "model": "opencode/grok-code", "variant": "low", "skills": [], "mcps": [] },
-      "designer": { "model": "opencode/grok-code", "variant": "medium", "skills": ["playwright"], "mcps": [] },
-      "fixer": { "model": "opencode/grok-code", "variant": "low", "skills": [], "mcps": [] }
-    },
-    "antigravity-openai": {
-      "orchestrator": { "model": "google/claude-opus-4-5-thinking", "skills": ["*"], "mcps": ["websearch"] },
-      "oracle": { "model": "openai/gpt-5.2-codex", "variant": "high", "skills": [], "mcps": [] },
-      "librarian": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
-      "explorer": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": [] },
-      "designer": { "model": "google/gemini-3-flash", "variant": "medium", "skills": ["playwright"], "mcps": [] },
-      "fixer": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": [] }
     }
-  },
-  "tmux": {
-    "enabled": true,
-    "layout": "main-vertical",
-    "main_pane_size": 60
   }
 }
 ```
-</details>
 
-**Available Presets:**
-
-| Preset | Description |
-|--------|-------------|
-| `antigravity` | Google models (Claude Opus + Gemini Flash) |
-| `openai` | OpenAI models (GPT-5.2 + GPT-5.1-mini) |
-| `zen-free` | Free models (GLM-4.7 + Grok Code) |
-| `antigravity-openai` | Mixed: Antigravity for most agents, OpenAI for Oracle |
-
-#### Author's Preset
-
-The author's personal configuration using Cerebras for the Orchestrator:
+#### Antigravity via CLIProxy
 
 ```json
 {
-  "cerebras": {
-    "orchestrator": { "model": "cerebras/zai-glm-4.7", "skills": ["*"], "mcps": ["websearch"] },
-    "oracle": { "model": "openai/gpt-5.2-codex", "variant": "high", "skills": [], "mcps": [] },
-    "librarian": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
-    "explorer": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": [] },
-    "designer": { "model": "google/gemini-3-flash", "variant": "medium", "skills": ["playwright"], "mcps": [] },
-    "fixer": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": [] }
+  "preset": "cliproxy",
+  "presets": {
+    "openai": {
+      "orchestrator": { "model": "cliproxy/gemini-claude-opus-4-5-thinking", "skills": ["*"], "mcps": ["websearch"] },
+      "oracle": { "model": "gemini-3-pro-preview", "variant": "high", "skills": [], "mcps": [] },
+      "librarian": { "model": "cliproxy/gemini-3-flash-preview", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
+      "explorer": { "model": "cliproxy/gemini-3-flash-preview", "variant": "low", "skills": [], "mcps": [] },
+      "designer": { "model": "cliproxy/gemini-3-flash-preview", "variant": "medium", "skills": ["playwright"], "mcps": [] },
+      "fixer": { "model": "cliproxy/gemini-3-flash-preview", "variant": "low", "skills": [], "mcps": [] }
+    }
+  }
+}
+```
+
+Configure Antigravity models in the `provider` section:
+```json
+  "provider": {
+    "cliproxy": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "CliProxy",
+      "options": {
+        "baseURL": "http://127.0.0.1:8317/v1",
+        "apiKey": "your-api-key-1"
+      },
+      "models": {
+        "gemini-3-pro-high": {
+          "name": "Gemini 3 Pro High",
+          "thinking": true,
+          "attachment": true,
+          "limit": { "context": 1048576, "output": 65535 },
+          "modalities": { "input": [ "text", "image", "pdf" ], "output": [ "text" ] }
+        },
+        "gemini-3-flash-preview": {
+          "name": "Gemini 3 Flash",
+          "attachment": true,
+          "limit": { "context": 1048576, "output": 65536 },
+          "modalities": { "input": [ "text", "image", "pdf" ], "output": [ "text" ] }
+        },
+        "gemini-claude-opus-4-5-thinking": {
+          "name": "Claude Opus 4.5 Thinking",
+          "attachment": true,
+          "limit": { "context": 200000, "output": 32000 },
+          "modalities": { "input": [ "text", "image", "pdf" ], "output": [ "text" ] }
+        },
+        "gemini-claude-sonnet-4-5-thinking": {
+          "name": "Claude Sonnet 4.5 Thinking",
+          "attachment": true,
+          "limit": { "context": 200000, "output": 32000 },
+          "modalities": { "input": [ "text", "image", "pdf" ], "output": [ "text" ] }
+        }
+      }
+    }
+  }
+```
+
+#### Author's Preset
+
+```json
+{
+  "preset": "alvin",
+  "presets": {
+    "alvin": {
+      "orchestrator": { "model": "cliproxy/gemini-claude-opus-4-5-thinking", "skills": ["*"], "mcps": ["*"] },
+      "oracle": { "model": "openai/gpt-5.2-codex", "variant": "high", "skills": [], "mcps": [] },
+      "librarian": { "model": "cliproxy/gemini-3-flash-preview", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
+      "explorer": { "model": "cerebras/zai-glm-4.7", "variant": "low", "skills": [], "mcps": [] },
+      "designer": { "model": "cliproxy/gemini-3-flash-preview", "variant": "medium", "skills": ["playwright"], "mcps": [] },
+      "fixer": { "model": "cerebras/zai-glm-4.7", "variant": "low", "skills": [], "mcps": [] }
+    }
   }
 }
 ```
