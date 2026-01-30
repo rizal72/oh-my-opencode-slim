@@ -126,6 +126,101 @@ Routes through Antigravity's CLIProxy for Claude + Gemini models:
 
 </details>
 
+### Antigravity Provider Setup
+
+For using Antigravity with the "google" provider configuration (recommended for Claude + Gemini models):
+
+**Step 1: Configure Provider in OpenCode**
+
+Add to `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "provider": {
+    "google": {
+      "options": {
+        "baseURL": "http://127.0.0.1:8317/v1beta",
+        "apiKey": "sk-dummy"
+      },
+      "models": {
+        "gemini-3-pro-high": {
+          "name": "Gemini 3 Pro High",
+          "attachment": true,
+          "limit": {
+            "context": 1048576,
+            "output": 65535
+          },
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
+          }
+        },
+        "gemini-3-flash": {
+          "name": "Gemini 3 Flash",
+          "attachment": true,
+          "limit": {
+            "context": 1048576,
+            "output": 65536
+          },
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
+          }
+        },
+        "claude-opus-4-5-thinking": {
+          "name": "Claude Opus 4.5 Thinking",
+          "attachment": true,
+          "limit": {
+            "context": 200000,
+            "output": 32000
+          },
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
+          }
+        },
+        "claude-sonnet-4-5-thinking": {
+          "name": "Claude Sonnet 4.5 Thinking",
+          "attachment": true,
+          "limit": {
+            "context": 200000,
+            "output": 32000
+          },
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**Step 2: Configure Agent Models**
+
+Add preset to `~/.config/opencode/oh-my-opencode-slim.json`:
+
+```json
+{
+  "preset": "antigravity",
+  "presets": {
+    "antigravity": {
+      "orchestrator": { "model": "google/claude-opus-4-5-thinking", "skills": ["*"], "mcps": ["websearch"] },
+      "oracle": { "model": "google/gemini-3-pro-high", "variant": "high", "skills": [], "mcps": [] },
+      "librarian": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
+      "explorer": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": [] },
+      "designer": { "model": "google/gemini-3-flash", "variant": "medium", "skills": ["agent-browser"], "mcps": [] },
+      "fixer": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": [] }
+    }
+  }
+}
+```
+
+**💡 Recommendation:** Use `claude-opus-4-5-thinking` for the orchestrator as it provides the best reasoning capabilities for multi-agent coordination.
+
+> **Installation Note:** For detailed installation instructions, see https://nghyane.github.io/llm-mux/#/installation
+
 ### Author's Preset
 
 Mixed setup combining multiple providers:
@@ -135,11 +230,11 @@ Mixed setup combining multiple providers:
   "preset": "alvin",
   "presets": {
     "alvin": {
-      "orchestrator": { "model": "cliproxy/gemini-claude-opus-4-5-thinking", "skills": ["*"], "mcps": ["*"] },
+      "orchestrator": { "model": "google/claude-opus-4-5-thinking", "skills": ["*"], "mcps": ["*"] },
       "oracle": { "model": "openai/gpt-5.2-codex", "variant": "high", "skills": [], "mcps": [] },
-      "librarian": { "model": "cliproxy/gemini-3-flash-preview", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
+      "librarian": { "model": "google/gemini-3-flash", "variant": "low", "skills": [], "mcps": ["websearch", "context7", "grep_app"] },
       "explorer": { "model": "cerebras/zai-glm-4.7", "variant": "low", "skills": [], "mcps": [] },
-      "designer": { "model": "cliproxy/gemini-3-flash-preview", "variant": "medium", "skills": ["agent-browser"], "mcps": [] },
+      "designer": { "model": "google/gemini-3-flash", "variant": "medium", "skills": ["agent-browser"], "mcps": [] },
       "fixer": { "model": "cerebras/zai-glm-4.7", "variant": "low", "skills": [], "mcps": [] }
     }
   }
