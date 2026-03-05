@@ -244,9 +244,7 @@ export class BackgroundTaskManager {
     // primary may be a string, an array of string|{id,variant?}, or undefined
     let primaryIds: string[];
     if (Array.isArray(primary)) {
-      primaryIds = primary.map((m) =>
-        typeof m === 'string' ? m : m.id,
-      );
+      primaryIds = primary.map((m) => (typeof m === 'string' ? m : m.id));
     } else if (typeof primary === 'string') {
       primaryIds = [primary];
     } else {

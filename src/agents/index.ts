@@ -119,8 +119,7 @@ export function createAgents(config?: PluginConfig): AgentDefinition[] {
       let librarianModel: string | undefined;
       if (Array.isArray(librarianOverride)) {
         const first = librarianOverride[0];
-        librarianModel =
-          typeof first === 'string' ? first : first?.id;
+        librarianModel = typeof first === 'string' ? first : first?.id;
       } else {
         librarianModel = librarianOverride;
       }

@@ -128,9 +128,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
           (opencodeConfig.provider as Record<string, unknown>) ?? {};
         const configuredProviders = Object.keys(providerConfig);
 
-        for (const [agentName, modelArray] of Object.entries(
-          modelArrayMap,
-        )) {
+        for (const [agentName, modelArray] of Object.entries(modelArrayMap)) {
           let resolved = false;
           for (const modelEntry of modelArray) {
             const slashIdx = modelEntry.id.indexOf('/');
