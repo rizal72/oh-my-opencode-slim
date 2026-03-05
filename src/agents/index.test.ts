@@ -140,6 +140,104 @@ describe('orchestrator agent', () => {
     const orchestrator = agents.find((a) => a.name === 'orchestrator');
     expect(orchestrator?.config.variant).toBe('high');
   });
+
+  test('orchestrator stores model array with per-model variants in _modelArray', () => {
+    const config: PluginConfig = {
+      agents: {
+        orchestrator: {
+          model: [
+            { id: 'google/gemini-3-pro', variant: 'high' },
+            { id: 'github-copilot/claude-3.5-haiku' },
+            'openai/gpt-4',
+          ],
+        },
+      },
+    };
+    const agents = createAgents(config);
+    const orchestrator = agents.find((a) => a.name === 'orchestrator');
+    expect(orchestrator?._modelArray).toEqual([
+      { id: 'google/gemini-3-pro', variant: 'high' },
+      { id: 'github-copilot/claude-3.5-haiku' },
+      { id: 'openai/gpt-4' },
+    ]);
+    expect(orchestrator?.config.model).toBeUndefined();
+  });
+});
+
+describe('per-model variant in array config', () => {
+  test('subagent stores model array with per-model variants', () => {
+    const config: PluginConfig = {
+      agents: {
+        explorer: {
+          model: [
+            { id: 'google/gemini-3-flash', variant: 'low' },
+            'openai/gpt-4o-mini',
+          ],
+        },
+      },
+    };
+    const agents = createAgents(config);
+    const explorer = agents.find((a) => a.name === 'explorer');
+    expect(explorer?._modelArray).toEqual([
+      { id: 'google/gemini-3-flash', variant: 'low' },
+      { id: 'openai/gpt-4o-mini' },
+    ]);
+    expect(explorer?.config.model).toBeUndefined();
+  });
+
+  test('top-level variant preserved alongside per-model variants', () => {
+    const config: PluginConfig = {
+      agents: {
+        orchestrator: {
+          model: [
+            { id: 'google/gemini-3-pro', variant: 'high' },
+            'openai/gpt-4',
+          ],
+          variant: 'low',
+        },
+      },
+    };
+    const agents = createAgents(config);
+    const orchestrator = agents.find((a) => a.name === 'orchestrator');
+    // top-level variant still set as default
+    expect(orchestrator?.config.variant).toBe('low');
+    // per-model variants stored in _modelArray
+    expect(orchestrator?._modelArray?.[0]?.variant).toBe('high');
+    expect(orchestrator?._modelArray?.[1]?.variant).toBeUndefined();
+  });
+});
+
+describe('skill permissions', () => {
+  test('orchestrator gets cartography skill allowed by default', () => {
+    const agents = createAgents();
+    const orchestrator = agents.find((a) => a.name === 'orchestrator');
+    expect(orchestrator).toBeDefined();
+    const skillPerm = (
+      orchestrator?.config.permission as Record<string, unknown>
+    )?.skill as Record<string, string>;
+    // orchestrator gets wildcard allow (from RECOMMENDED_SKILLS wildcard entry)
+    expect(skillPerm?.['*']).toBe('allow');
+    // CUSTOM_SKILLS loop must also add a named cartography entry for orchestrator
+    expect(skillPerm?.cartography).toBe('allow');
+  });
+
+  test('explorer gets cartography skill allowed by default', () => {
+    const agents = createAgents();
+    const explorer = agents.find((a) => a.name === 'explorer');
+    expect(explorer).toBeDefined();
+    const skillPerm = (explorer?.config.permission as Record<string, unknown>)
+      ?.skill as Record<string, string>;
+    expect(skillPerm?.cartography).toBe('allow');
+  });
+
+  test('oracle gets requesting-code-review skill allowed by default', () => {
+    const agents = createAgents();
+    const oracle = agents.find((a) => a.name === 'oracle');
+    expect(oracle).toBeDefined();
+    const skillPerm = (oracle?.config.permission as Record<string, unknown>)
+      ?.skill as Record<string, string>;
+    expect(skillPerm?.['requesting-code-review']).toBe('allow');
+  });
 });
 
 describe('isSubagent type guard', () => {
@@ -205,7 +303,9 @@ describe('getAgentConfigs', () => {
     const configs = getAgentConfigs();
     expect(configs.orchestrator).toBeDefined();
     expect(configs.explorer).toBeDefined();
-    expect(configs.orchestrator.model).toBeDefined();
+    // orchestrator has no hardcoded default model; resolved at runtime via
+    // chat.message hook when _modelArray is configured, or left to the user
+    expect(configs.explorer.model).toBeDefined();
   });
 
   test('includes description in SDK config', () => {

@@ -21,22 +21,23 @@ export type AgentName = (typeof ALL_AGENT_NAMES)[number];
 
 // Subagent delegation rules: which agents can spawn which subagents
 // orchestrator: can spawn all subagents (full delegation)
-// fixer: can spawn explorer (for research during implementation)
+// fixer: leaf node — prompt forbids delegation; use grep/glob for lookups
 // designer: can spawn explorer (for research during design)
 // explorer/librarian/oracle: cannot spawn any subagents (leaf nodes)
 // Unknown agent types not listed here default to explorer-only access
 export const SUBAGENT_DELEGATION_RULES: Record<AgentName, readonly string[]> = {
   orchestrator: SUBAGENT_NAMES,
-  fixer: ['explorer'],
-  designer: ['explorer'],
+  fixer: [],
+  designer: [],
   explorer: [],
   librarian: [],
   oracle: [],
 };
 
 // Default models for each agent
-export const DEFAULT_MODELS: Record<AgentName, string> = {
-  orchestrator: 'kimi-for-coding/k2p5',
+// orchestrator is undefined so its model is fully resolved at runtime via priority fallback
+export const DEFAULT_MODELS: Record<AgentName, string | undefined> = {
+  orchestrator: undefined,
   oracle: 'openai/gpt-5.2-codex',
   librarian: 'openai/gpt-5.1-codex-mini',
   explorer: 'openai/gpt-5.1-codex-mini',

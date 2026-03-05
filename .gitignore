@@ -45,6 +45,13 @@ local
 .ignore
 opencode
 oh-my-opencode
+opencode.jsonc
+
+# AI Memory
+.aim/
+
+# Planning docs (not for commit)
+TIMEOUT_PLAN.md
 
 # AI Memory
 .aim/
