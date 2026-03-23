@@ -142,6 +142,7 @@ export type BackgroundTaskConfig = z.infer<typeof BackgroundTaskConfigSchema>;
 export const FailoverConfigSchema = z.object({
   enabled: z.boolean().default(true),
   timeoutMs: z.number().min(0).default(15000),
+  retryDelayMs: z.number().min(0).default(500),
   chains: FallbackChainsSchema.default({}),
 });
 
@@ -150,6 +151,7 @@ export type FailoverConfig = z.infer<typeof FailoverConfigSchema>;
 // Main plugin config
 export const PluginConfigSchema = z.object({
   preset: z.string().optional(),
+  setDefaultAgent: z.boolean().optional(),
   scoringEngineVersion: z.enum(['v1', 'v2-shadow', 'v2']).optional(),
   balanceProviderUsage: z.boolean().optional(),
   manualPlan: ManualPlanSchema.optional(),
