@@ -14,6 +14,9 @@ export const DEFAULT_AGENT_MCPS: Record<AgentName, string[]> = {
   librarian: ['websearch', 'context7', 'grep_app'],
   explorer: [],
   fixer: [],
+  council: [],
+  councillor: [],
+  'council-master': [],
 };
 
 /**
@@ -35,7 +38,7 @@ export function parseList(items: string[], allAvailable: string[]): string[] {
     return allAvailable.filter((item) => !deny.includes(item));
   }
 
-  return allow.filter((item) => !deny.includes(item));
+  return allow.filter((item) => !deny.includes(item) && allAvailable.includes(item));
 }
 
 /**

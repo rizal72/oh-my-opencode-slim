@@ -1,8 +1,7 @@
 // AST-grep tools
 export { ast_grep_replace, ast_grep_search } from './ast-grep';
 export { createBackgroundTools } from './background';
-// Grep tool (ripgrep-based)
-export { grep } from './grep';
+export { createCouncilTool } from './council';
 export {
   lsp_diagnostics,
   lsp_find_references,

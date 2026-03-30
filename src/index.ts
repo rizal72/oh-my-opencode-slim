@@ -3,21 +3,23 @@ import { createAgents, getAgentConfigs } from './agents';
 import { BackgroundTaskManager, TmuxSessionManager } from './background';
 import { loadPluginConfig, type TmuxConfig } from './config';
 import { parseList } from './config/agent-mcps';
+import { CouncilManager } from './council';
 import {
   createAutoUpdateCheckerHook,
   createChatHeadersHook,
   createDelegateTaskRetryHook,
-  ForegroundFallbackManager,
+  createFilterAvailableSkillsHook,
   createJsonErrorRecoveryHook,
   createPhaseReminderHook,
-  createPostReadNudgeHook,
+  createPostFileToolNudgeHook,
+  ForegroundFallbackManager,
 } from './hooks';
 import { createBuiltinMcps } from './mcp';
 import {
   ast_grep_replace,
   ast_grep_search,
   createBackgroundTools,
-  grep,
+  createCouncilTool,
   lsp_diagnostics,
   lsp_find_references,
   lsp_goto_definition,
@@ -95,6 +97,20 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
     tmuxConfig,
     config,
   );
+
+  // Initialize council tools (only when council is configured)
+  const councilTools = config.council
+    ? createCouncilTool(
+        ctx,
+        new CouncilManager(
+          ctx,
+          config,
+          backgroundManager.getDepthTracker(),
+          tmuxConfig.enabled,
+        ),
+      )
+    : {};
+
   const mcps = createBuiltinMcps(config.disabled_mcps);
 
   // Initialize TmuxSessionManager to handle OpenCode's built-in Task tool sessions
@@ -109,8 +125,14 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
   // Initialize phase reminder hook for workflow compliance
   const phaseReminderHook = createPhaseReminderHook();
 
-  // Initialize post-read nudge hook
-  const postReadNudgeHook = createPostReadNudgeHook();
+  // Initialize available skills filter hook
+  const filterAvailableSkillsHook = createFilterAvailableSkillsHook(
+    ctx,
+    config,
+  );
+
+  // Initialize post-file-tool nudge hook
+  const postFileToolNudgeHook = createPostFileToolNudgeHook();
 
   const chatHeadersHook = createChatHeadersHook(ctx);
 
@@ -134,11 +156,11 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
 
     tool: {
       ...backgroundTools,
+      ...councilTools,
       lsp_goto_definition,
       lsp_find_references,
       lsp_diagnostics,
       lsp_rename,
-      grep,
       ast_grep_search,
       ast_grep_replace,
     },
@@ -186,17 +208,12 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
       }
       const configAgent = opencodeConfig.agent as Record<string, unknown>;
 
-      // Model resolution for foreground agents: pick the best available model
-      // by combining _modelArray entries with fallback.chains config.
+      // Model resolution for foreground agents: combine _modelArray entries
+      // with fallback.chains config, then pick the first model in the
+      // effective array for startup-time selection.
       //
-      // NOTE: We cannot call ctx.client.provider.list() here because
-      // the HTTP server is still initializing (causes deadlock).
-      // Instead, inspect opencodeConfig.provider directly.
-      //
-      // NOTE: This is startup-time selection only — it picks the best
-      // available provider at plugin init. Runtime failover on API errors
-      // (e.g. rate limits mid-conversation) is handled separately by
-      // ForegroundFallbackManager via the event hook.
+      // Runtime failover on API errors (e.g. rate limits mid-conversation)
+      // is handled separately by ForegroundFallbackManager via the event hook.
       const fallbackChainsEnabled = config.fallback?.enabled !== false;
       const fallbackChains = fallbackChainsEnabled
         ? ((config.fallback?.chains as Record<string, string[] | undefined>) ??
@@ -241,61 +258,31 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
       }
 
       if (Object.keys(effectiveArrays).length > 0) {
-        const providerConfig =
-          (opencodeConfig.provider as Record<string, unknown>) ?? {};
-        const hasProviderConfig = Object.keys(providerConfig).length > 0;
-
         for (const [agentName, modelArray] of Object.entries(effectiveArrays)) {
           if (modelArray.length === 0) continue;
-          let resolved = false;
 
-          if (hasProviderConfig) {
-            const configuredProviders = Object.keys(providerConfig);
-            for (const modelEntry of modelArray) {
-              const slashIdx = modelEntry.id.indexOf('/');
-              if (slashIdx === -1) continue;
-              const providerID = modelEntry.id.slice(0, slashIdx);
-              if (configuredProviders.includes(providerID)) {
-                const entry = configAgent[agentName] as
-                  | Record<string, unknown>
-                  | undefined;
-                if (entry) {
-                  entry.model = modelEntry.id;
-                  if (modelEntry.variant) {
-                    entry.variant = modelEntry.variant;
-                  }
-                }
-                log('[plugin] resolved model fallback', {
-                  agent: agentName,
-                  model: modelEntry.id,
-                  variant: modelEntry.variant,
-                });
-                resolved = true;
-                break;
-              }
+          // Use the first model in the effective array.
+          // Not all providers require entries in opencodeConfig.provider —
+          // some are loaded automatically by opencode (e.g. github-copilot,
+          // openrouter). We cannot distinguish these from truly unconfigured
+          // providers at config-hook time, so we cannot gate on the provider
+          // config keys. Runtime failover is handled separately by
+          // ForegroundFallbackManager.
+          const chosen = modelArray[0];
+          const entry = configAgent[agentName] as
+            | Record<string, unknown>
+            | undefined;
+          if (entry) {
+            entry.model = chosen.id;
+            if (chosen.variant) {
+              entry.variant = chosen.variant;
             }
           }
-
-          // If no provider config or no provider matched, use the first model
-          // in the array. This ensures model arrays work even without explicit
-          // provider configuration.
-          if (!resolved) {
-            const firstModel = modelArray[0];
-            const entry = configAgent[agentName] as
-              | Record<string, unknown>
-              | undefined;
-            if (entry) {
-              entry.model = firstModel.id;
-              if (firstModel.variant) {
-                entry.variant = firstModel.variant;
-              }
-            }
-            log('[plugin] resolved model from array (no provider config)', {
-              agent: agentName,
-              model: firstModel.id,
-              variant: firstModel.variant,
-            });
-          }
+          log('[plugin] resolved model from array', {
+            agent: agentName,
+            model: chosen.id,
+            variant: chosen.variant,
+          });
         }
       }
 
@@ -309,8 +296,11 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
         Object.assign(configMcp, mcps);
       }
 
-      // Get all MCP names from our config
-      const allMcpNames = Object.keys(mcps);
+      // Get all MCP names from the merged config (built-in + custom)
+      const mergedMcpConfig = opencodeConfig.mcp as
+        | Record<string, unknown>
+        | undefined;
+      const allMcpNames = Object.keys(mergedMcpConfig ?? mcps);
 
       // For each agent, create permission rules based on their mcps list
       for (const [agentName, agentConfig] of Object.entries(agents)) {
@@ -403,11 +393,33 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
 
     'chat.headers': chatHeadersHook['chat.headers'],
 
-    // Inject phase reminder before sending to API (doesn't show in UI)
-    'experimental.chat.messages.transform':
-      phaseReminderHook['experimental.chat.messages.transform'],
+    // Inject phase reminder and filter available skills before sending to API (doesn't show in UI)
+    'experimental.chat.messages.transform': async (
+      input: Record<string, never>,
+      output: { messages: unknown[] },
+    ): Promise<void> => {
+      // Type assertion since we know the structure matches MessageWithParts[]
+      const typedOutput = output as {
+        messages: Array<{
+          info: { role: string; agent?: string; sessionID?: string };
+          parts: Array<{
+            type: string;
+            text?: string;
+            [key: string]: unknown;
+          }>;
+        }>;
+      };
+      await phaseReminderHook['experimental.chat.messages.transform'](
+        input,
+        typedOutput,
+      );
+      await filterAvailableSkillsHook['experimental.chat.messages.transform'](
+        input,
+        typedOutput,
+      );
+    },
 
-    // Post-tool hooks: retry guidance for delegation errors + post-read nudge
+    // Post-tool hooks: retry guidance for delegation errors + file-tool nudge
     'tool.execute.after': async (input, output) => {
       await delegateTaskRetryHook['tool.execute.after'](
         input as { tool: string },
@@ -427,7 +439,7 @@ const OhMyOpenCodeLite: Plugin = async (ctx) => {
         },
       );
 
-      await postReadNudgeHook['tool.execute.after'](
+      await postFileToolNudgeHook['tool.execute.after'](
         input as {
           tool: string;
           sessionID?: string;
